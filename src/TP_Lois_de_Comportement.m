@@ -41,9 +41,9 @@ if question == 1
     % Methode 3: a partir de fminsearch
     % generate le vecteur entre de fminsearch
     init_set = [1 1]; % initial values for p1 and p2
-    estim_neohook = fminsearch(@(experimental_set) optim_lineaire(donnes_exp,x,experimental_set), init_set);
+    G_opt = fminsearch(@(experimental_set) optim_lineaire(donnes_exp,x,experimental_set), init_set);
     disp('Parametres estimees par fminsearch')
-    disp(estim_neohook)
+    disp(G_opt)
 end
 %% Question 2 (Tritement des resultats du capteur)
 if question == 2
@@ -70,7 +70,7 @@ if question == 2
     % plot les donnees
     figure
     plot(alpha, t1, '+', 'LineWidth', 2);hold on;
-    plot(alpha, sigma, 'o', 'LineWidth', 2);hold off;
+    plot(alpha, sigma, 'o', 'LineWidth', 2); hold off;
     legend('Engineering stress', 'Real stress');
     xlabel('Alpha (Lambda)')
     xlabel('Stress (Pa)')
@@ -81,16 +81,51 @@ if question == 2
     % 1/2*G(alpha1^2 + alpha2^2 + alpha3^2 -3) = G*(alpha.^2 - 1/alpha)
     % 
     G_i = 1; % initial values for G
-    estim_neohook = fminsearch(@(G) optim_neo_hookean(sigma,alpha,G), G_i);
+    G_opt = fminsearch(@(G) optim_neo_hookean(sigma,alpha,G), G_i);
     disp('Neo Hook : Parametres estimees pour G (Pa)')
-    disp(estim_neohook)
+    disp(G_opt)
     
     % modele Mooney-Rivelin
-    C_i = [1 1];
-    estim_mooney = fminsearch(@(C) optim_mooney_rivelin(sigma,alpha,C), C_i);
+    C_i = [100 100];
+    C_optm = fminsearch(@(C) optim_mooney_rivelin(sigma,alpha,C), C_i);
     disp('Mooney: Parametres estimees pour C (Pa)')
-    disp(estim_mooney)
+    disp(C_optm)
+    disp('Validation du resultat:')
+    disp('abs(C(2)-C(1)) doit etre en tour de 2.5KPa ')
+    disp(abs(C_optm(2))-abs(C_optm(1)))
+    
+    % modele d'ogden
+    O_i = [1 1; 100 100];
+    O_optm = fminsearch(@(O) optim_ogden(sigma,alpha,O), O_i);
+    disp('Ogden: Parametres estimees pour O (Pa)')
+    disp(O_optm)
+    disp('Validation du resultat:')
+    disp('sum(u * a) doit etre dordre de KPa ')
+    disp(sum(O_optm(1,:).*O_optm(2,:)))
+    
+    % modele de Langevin
+    L_i = [1 1 1];
+    L_optm = fminsearch(@(L) optim_langevin(sigma,alpha,L), L_i);
+    disp('Langevin: Parametres estimees pour L (Pa)')
+    disp(L_optm)
+%     disp('Validation du resultat:')
+%     disp('sum(u * a) doit etre dordre de KPa ')
+%     disp(sum(O_optm(1,:).*O_optm(2,:)))
+    
+   % plot les donnees
+    figure
+    plot(alpha, sigma, 'o', 'LineWidth', 4);hold on;
+    plot(alpha, neo_hookean(alpha, G_opt), '*--', 'LineWidth', 2);
+    plot(alpha, mooney_rivelin(alpha, C_optm), '*--', 'LineWidth', 2);
+    plot(alpha, ogden(alpha, O_optm), '*--', 'LineWidth', 2);
+    plot(alpha, langevin(alpha, L_optm), '*--', 'LineWidth', 2);hold off;
+    legend('Real stress', 'Neo-Hookean', 'Mooney Rivelin','Ogden', 'Langevin');
+    xlabel('Alpha (Lambda)')
+    ylabel('Stress (Pa)')
+    title('Modeles de Prediction de la loi de comportement')
+    
 end
 
-
+%% Conclusion
+% Pour le jeu de donéés de cet experiment, les modeles d'Ogden et Mooney Rivelin sont les meilleures pour décrire le comportement du material étudie
 
